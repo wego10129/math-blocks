@@ -5,15 +5,20 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>位值積木操作</title>
     <style>
-        /* 基礎重置與防呆設定，防止 iPad 瀏覽器原生手勢干擾 */
-        body { margin: 0; font-family: '微軟正黑體', sans-serif; background-color: #f4f7f9; touch-action: none; user-select: none; }
+        /* 基礎重置與防呆設定，防止反白與瀏覽器原生手勢干擾 */
+        body { 
+            margin: 0; font-family: '微軟正黑體', sans-serif; background-color: #f4f7f9; 
+            touch-action: none; /* 禁用瀏覽器預設手勢 */
+            user-select: none; /* 禁用文字反白選取 */
+            -webkit-user-select: none; 
+        }
         .header { text-align: center; padding: 20px 0; }
         .title { font-size: 28px; font-weight: bold; color: #333; }
         .subtitle { font-size: 18px; color: #7f8c8d; margin-top: 5px; }
 
         /* 位值表主區域 */
         .board { display: flex; justify-content: center; gap: 20px; padding: 20px; }
-        .zone { width: 250px; height: 350px; border: 3px solid; border-radius: 10px; background: white; display: flex; flex-direction: column; align-items: center; position: relative; }
+        .zone { width: 250px; height: 380px; border: 3px solid; border-radius: 10px; background: white; display: flex; flex-direction: column; align-items: center; position: relative; }
         
         .zone-hundreds { border-color: #ff9999; }
         .zone-tens { border-color: #99e6cc; }
@@ -26,15 +31,42 @@
 
         .hint-text { font-size: 12px; color: #bdc3c7; margin-top: 10px; }
 
-        /* 積木放置區 (特別是十格陣) */
+        /* 積木放置區 (十格陣) */
         .block-container { flex-grow: 1; width: 100%; display: flex; flex-wrap: wrap; justify-content: center; align-content: flex-start; gap: 10px; padding-top: 20px; }
-        .ten-frame { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; }
+        .ten-frame { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; justify-items: center; }
         
-        /* 積木樣式設計 */
-        .block { cursor: grab; box-shadow: 2px 2px 5px rgba(0,0,0,0.2); z-index: 10; touch-action: none; }
-        .block-100 { width: 100px; height: 100px; background-color: #ff6666; border-radius: 5px; border: 1px solid #e74c3c; background-image: linear-gradient(rgba(255,255,255,0.3) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.3) 1px, transparent 1px); background-size: 10px 10px; }
-        .block-10 { width: 30px; height: 120px; background-color: #4dc3a3; border-radius: 5px; border: 1px solid #1abc9c; background-image: linear-gradient(rgba(255,255,255,0.3) 1px, transparent 1px); background-size: 100% 12px; }
-        .block-1 { width: 30px; height: 30px; background-color: #f1c40f; border-radius: 5px; border: 1px solid #f39c12; }
+        .block { cursor: grab; z-index: 10; touch-action: none; user-select: none; }
+        
+        /* 個位數 (1個正方形) */
+        .block-1 { 
+            width: 28px; height: 28px; 
+            background-color: #f1c40f; border: 1px solid #d4ac0d; border-radius: 4px;
+            box-shadow: inset -1px -1px 3px rgba(0,0,0,0.1);
+        }
+        
+        /* 十位數 (10個完美正方形組成的直條) */
+        .block-10 { 
+            display: flex; flex-direction: column; gap: 1px; 
+            background: transparent; width: 28px; 
+        }
+        .cube-10 { 
+            width: 28px; height: 28px; 
+            background-color: #4dc3a3; border-radius: 3px; 
+            pointer-events: none; /* 讓點擊穿透到母容器 */
+            box-shadow: inset -1px -1px 3px rgba(0,0,0,0.1); 
+        }
+
+        /* 百位數 (10x10 正方形組成的陣列) */
+        .block-100 { 
+            display: grid; grid-template-columns: repeat(10, 1fr); gap: 1px; 
+            width: 150px; background: transparent; 
+        }
+        .cube-100 { 
+            width: 14px; height: 14px; 
+            background-color: #ff6666; border-radius: 1px; 
+            pointer-events: none; 
+            box-shadow: inset -1px -1px 2px rgba(0,0,0,0.1); 
+        }
 
         /* 底部操作區 */
         .footer { display: flex; justify-content: space-between; padding: 20px 40px; background: white; border-top: 2px solid #ecf0f1; position: fixed; bottom: 0; width: 100%; box-sizing: border-box;}
@@ -55,11 +87,11 @@
 <body>
 
     <div class="header">
-        <div class="title">134 <span style="color: #e74c3c;">變成</span> 124</div>
+        <div class="title">23 <span style="color: #e74c3c;">變成</span> 13</div>
         <div class="subtitle">請操作積木（拿走10）</div>
     </div>
 
-    <!-- 位值表區域 (拖入增加，拖出減少) -->
+    <!-- 位值表區域 -->
     <div class="board">
         <div class="zone zone-hundreds" id="zone-100">
             <div class="zone-title">百位</div>
@@ -67,10 +99,9 @@
         </div>
         <div class="zone zone-tens" id="zone-10">
             <div class="zone-title">十位</div>
-            <div class="hint-text">(長按可退位/拖至左下移除)</div>
+            <div class="hint-text">(拖至左下可移除)</div>
             <div class="block-container" id="container-10">
-                <!-- 預設題目 134 的 3 個十位 -->
-                <div class="block block-10" data-value="10"></div>
+                <!-- 預設題目 23 的 2 個十位 -->
                 <div class="block block-10" data-value="10"></div>
                 <div class="block block-10" data-value="10"></div>
             </div>
@@ -79,8 +110,7 @@
             <div class="zone-title">個位</div>
             <div class="hint-text">(拖至左下可移除)</div>
             <div class="block-container ten-frame" id="container-1">
-                 <!-- 預設題目 134 的 4 個個位 -->
-                 <div class="block block-1" data-value="1"></div>
+                 <!-- 預設題目 23 的 3 個個位 -->
                  <div class="block block-1" data-value="1"></div>
                  <div class="block block-1" data-value="1"></div>
                  <div class="block block-1" data-value="1"></div>
@@ -88,7 +118,7 @@
         </div>
     </div>
 
-    <!-- 底部：預備區 (作為來源與回收站) -->
+    <!-- 底部：預備區 -->
     <div class="footer">
         <div class="source-area" id="source-area">
             <div class="source-item">
@@ -111,116 +141,138 @@
     </div>
 
 <script>
-    // 全域變數記錄拖曳狀態
+    let isDragging = false;
     let draggedElement = null;
     let dragClone = null;
-    let startX = 0, startY = 0;
     let originalParent = null;
 
-    // 取得各個區域
     const sourceArea = document.getElementById('source-area');
-    const zones = {
-        100: document.getElementById('zone-100'),
-        10: document.getElementById('zone-10'),
-        1: document.getElementById('zone-1')
-    };
     const containers = {
         100: document.getElementById('container-100'),
         10: document.getElementById('container-10'),
         1: document.getElementById('container-1')
     };
 
-    // 綁定觸控與滑鼠事件 (iPad 相容)
-    document.addEventListener('pointerdown', handlePointerDown);
-    document.addEventListener('pointermove', handlePointerMove);
-    document.addEventListener('pointerup', handlePointerUp);
-
-    function handlePointerDown(e) {
-        const target = e.target;
-        // 確認點擊的是積木
-        if (target.classList.contains('block')) {
-            draggedElement = target;
-            originalParent = target.parentElement;
-
-            // 建立虛擬分身跟隨手指
-            dragClone = target.cloneNode(true);
-            dragClone.classList.add('dragging');
-            document.body.appendChild(dragClone);
-
-            moveClone(e.clientX, e.clientY);
-
-            // 如果是已在位值表上的積木，暫時將其隱藏 (代表被拿起來)
-            if (!originalParent.closest('#source-area')) {
-                draggedElement.style.opacity = '0.3';
+    // 自動生成十位數和百位數內部的正方形，確保畫面完美
+    function renderCubes() {
+        document.querySelectorAll('.block-10').forEach(block => {
+            if (block.children.length === 0) {
+                for(let i=0; i<10; i++) block.innerHTML += '<div class="cube-10"></div>';
             }
-            
-            // 針對觸控裝置防止預設滾動
-            e.preventDefault();
+        });
+        document.querySelectorAll('.block-100').forEach(block => {
+            if (block.children.length === 0) {
+                for(let i=0; i<100; i++) block.innerHTML += '<div class="cube-100"></div>';
+            }
+        });
+    }
+    
+    // 初始渲染
+    renderCubes();
+
+    function handleDragStart(e) {
+        // 尋找最近的積木元素，避免點到內部的正方形而無法拖曳
+        let target = e.target.closest('.block');
+        if (!target) return;
+
+        // 【關鍵修復】防止瀏覽器預設的反白選取與原生拖曳行為
+        if (e.cancelable) e.preventDefault(); 
+
+        isDragging = true;
+        draggedElement = target;
+        originalParent = target.parentElement;
+
+        // 建立拖曳分身
+        dragClone = target.cloneNode(true);
+        dragClone.classList.add('dragging');
+        document.body.appendChild(dragClone);
+
+        // 如果積木是在位值表上，讓原本的變半透明
+        if (!originalParent.closest('#source-area')) {
+            draggedElement.style.opacity = '0.3';
         }
+
+        // 立即移動分身到滑鼠/手指位置
+        handleDragMove(e);
     }
 
-    function handlePointerMove(e) {
-        if (!dragClone) return;
-        moveClone(e.clientX, e.clientY);
+    function handleDragMove(e) {
+        if (!isDragging || !dragClone) return;
+        
+        // 防止在手機/iPad上拖曳時畫面跟著捲動
+        if (e.cancelable) e.preventDefault(); 
+        
+        // 取得精確座標 (支援滑鼠與觸控)
+        let clientX = e.clientX || (e.touches && e.touches[0].clientX);
+        let clientY = e.clientY || (e.touches && e.touches[0].clientY);
+
+        if (clientX === undefined || clientY === undefined) return;
+
+        // 讓分身中心點跟著游標
+        dragClone.style.left = (clientX - dragClone.offsetWidth / 2) + 'px';
+        dragClone.style.top = (clientY - dragClone.offsetHeight / 2) + 'px';
     }
 
-    function handlePointerUp(e) {
-        if (!dragClone || !draggedElement) return;
+    function handleDragEnd(e) {
+        if (!isDragging || !dragClone) return;
+        isDragging = false;
 
-        const dropX = e.clientX;
-        const dropY = e.clientY;
+        let clientX = e.clientX || (e.changedTouches && e.changedTouches[0].clientX);
+        let clientY = e.clientY || (e.changedTouches && e.changedTouches[0].clientY);
 
-        // 移除分身
+        // 暫時隱藏分身，以便偵測底下是什麼區域
+        dragClone.style.display = 'none';
+        let targetElement = document.elementFromPoint(clientX, clientY);
+        
+        // 刪除分身，恢復原積木透明度
         dragClone.remove();
         dragClone = null;
         draggedElement.style.opacity = '1';
 
-        // 判斷放下的位置是否在某個目標區域內
-        const targetElement = document.elementFromPoint(dropX, dropY);
-        let handled = false;
+        let sourceRect = sourceArea.getBoundingClientRect();
 
-        // 情況 A：從預備區拖出來
-        if (originalParent.closest('#source-area')) {
-            const blockValue = draggedElement.getAttribute('data-source');
-            const targetZone = targetElement ? targetElement.closest('.zone') : null;
+        // 情況 A: 被丟回左下角的預備區 (代表要拿走/刪除)
+        if (clientX >= sourceRect.left && clientX <= sourceRect.right &&
+            clientY >= sourceRect.top && clientY <= sourceRect.bottom) {
             
-            // 如果成功放在對應的位值區，則在該區「新增」一個積木
-            if (targetZone && targetZone.id === `zone-${blockValue}`) {
-                const newBlock = document.createElement('div');
-                newBlock.className = draggedElement.className;
-                newBlock.setAttribute('data-value', blockValue);
-                containers[blockValue].appendChild(newBlock);
-                handled = true;
+            // 如果這塊積木本來就是在位值表上的，就把它刪掉
+            if (!originalParent.closest('#source-area')) {
+                draggedElement.remove();
             }
         } 
-        // 情況 B：從位值區拖出來 (移除/刪除邏輯)
+        // 情況 B: 被放進位值表中
         else {
-            const sourceAreaRect = sourceArea.getBoundingClientRect();
-            // 如果放下的位置落在左下角預備區的範圍內
-            if (
-                dropX >= sourceAreaRect.left && 
-                dropX <= sourceAreaRect.right &&
-                dropY >= sourceAreaRect.top && 
-                dropY <= sourceAreaRect.bottom
-            ) {
-                // 從畫面中移除該積木，達成「減法」效果
-                draggedElement.remove();
-                handled = true;
+            if (originalParent.closest('#source-area')) {
+                let blockValue = draggedElement.getAttribute('data-source');
+                let targetZone = targetElement ? targetElement.closest('.zone') : null;
+
+                // 確認有沒有放對位置 (例如: 十位積木必須放在 zone-10)
+                if (targetZone && targetZone.id === `zone-${blockValue}`) {
+                    let newBlock = document.createElement('div');
+                    newBlock.className = `block block-${blockValue}`;
+                    newBlock.setAttribute('data-value', blockValue);
+                    containers[blockValue].appendChild(newBlock);
+                    
+                    // 重新渲染內部的小正方形
+                    renderCubes();
+                }
             }
         }
 
-        // 重置拖曳狀態
+        // 清除狀態
         draggedElement = null;
         originalParent = null;
     }
 
-    function moveClone(x, y) {
-        if (!dragClone) return;
-        const rect = draggedElement.getBoundingClientRect();
-        // 讓滑鼠/手指在積木中心點
-        dragClone.style.left = (x - rect.width / 2) + 'px';
-        dragClone.style.top = (y - rect.height / 2) + 'px';
-    }
+    // 滑鼠事件
+    document.addEventListener('mousedown', handleDragStart, {passive: false});
+    document.addEventListener('mousemove', handleDragMove, {passive: false});
+    document.addEventListener('mouseup', handleDragEnd);
+
+    // 觸控事件 (iPad 專用)
+    document.addEventListener('touchstart', handleDragStart, {passive: false});
+    document.addEventListener('touchmove', handleDragMove, {passive: false});
+    document.addEventListener('touchend', handleDragEnd);
 </script>
 
 </body>
