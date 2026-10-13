@@ -1,0 +1,776 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <!-- 針對 iPad 最佳化，防止使用者雙擊放大畫面，強制全螢幕比例 -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>位值魔法積木</title>
+    <style>
+        :root {
+            --color-100: #ff6b6b; /* 百位：溫和的紅色 */
+            --color-10: #4ecdc4;  /* 十位：溫和的藍色 */
+            --color-1: #ffe66d;   /* 個位：溫和的黃色 */
+            --bg-color: #f7f9fc;
+            --text-color: #2b2d42;
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: 'Helvetica Neue', Arial, '微軟正黑體', sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            /* 關閉文字選取，避免 iPad 上操作時反白文字 */
+            user-select: none; 
+            -webkit-user-select: none;
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            overflow: hidden; /* 防止捲動 */
+        }
+
+        /* 頂部狀態列：包含稱號與進度 */
+        #header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 15px 30px;
+            background-color: white;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+            font-size: 24px;
+            font-weight: bold;
+        }
+
+        #title-badge {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            color: #8d99ae;
+        }
+
+        #score-display {
+            color: #ff9f1c;
+            display: flex;
+            gap: 5px;
+        }
+
+        /* 題目顯示區 */
+        #question-area {
+            text-align: center;
+            padding: 20px;
+            font-size: 36px;
+            font-weight: bold;
+            color: #2b2d42;
+            min-height: 50px;
+        }
+
+        #board {
+            display: flex;
+            flex: 1;
+            padding: 0 20px;
+            gap: 10px;
+        }
+
+        .column {
+            flex: 1;
+            background-color: white;
+            border-radius: 20px;
+            border: 4px solid #edf2f4;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 10px;
+            position: relative;
+            transition: all 0.3s ease;
+        }
+
+        .col-header {
+            font-size: 28px;
+            font-weight: bold;
+            margin-bottom: 20px;
+            padding: 5px 20px;
+            border-radius: 15px;
+            color: white;
+        }
+
+        #col-100 { border-color: rgba(255, 107, 107, 0.3); }
+        #col-100 .col-header { background-color: var(--color-100); }
+        
+        #col-10 { border-color: rgba(78, 205, 196, 0.3); }
+        #col-10 .col-header { background-color: var(--color-10); }
+        
+        #col-1 { border-color: rgba(255, 230, 109, 0.5); }
+        #col-1 .col-header { background-color: #f4d35e; color: #2b2d42; }
+
+        /* 個位數的十格陣 (5x2) */
+        .ten-frame {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 15px;
+            padding: 10px;
+            background-color: rgba(0,0,0,0.02);
+            border-radius: 15px;
+        }
+
+        .frame-cell {
+            width: 50px;
+            height: 50px;
+            border: 3px dashed #d9d9d9;
+            border-radius: 10px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        /* 積木樣式 */
+        .block {
+            border-radius: 8px;
+            box-shadow: 2px 4px 8px rgba(0,0,0,0.15);
+            cursor: pointer;
+            transition: transform 0.1s;
+        }
+        
+        /* 積木在被拖曳時的樣式 */
+        .block.dragging {
+            opacity: 0.8;
+            transform: scale(1.1);
+            position: absolute;
+            pointer-events: none; /* 讓事件穿透到下方的放置區 */
+            z-index: 1000;
+        }
+
+        .block-100 {
+            width: 120px;
+            height: 120px;
+            background-color: var(--color-100);
+            background-image: linear-gradient(rgba(255,255,255,0.2) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.2) 1px, transparent 1px);
+            background-size: 12px 12px;
+            margin-bottom: 10px;
+        }
+
+        .block-10 {
+            width: 40px;
+            height: 180px;
+            background-color: var(--color-10);
+            background-image: linear-gradient(rgba(255,255,255,0.4) 2px, transparent 2px);
+            background-size: 100% 18px; /* 模擬10小格 */
+            margin: 0 10px;
+        }
+
+        .block-1 {
+            width: 46px;
+            height: 46px;
+            background-color: var(--color-1);
+            border: 2px solid #f4d35e;
+        }
+
+        /* 十位數積木放置區（橫向排列） */
+        .tens-container {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 10px;
+            width: 100%;
+        }
+
+        #bottom-area {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 20px 40px;
+            background-color: white;
+            box-shadow: 0 -2px 10px rgba(0,0,0,0.05);
+            height: 120px;
+        }
+
+        /* 學生從這裡拖積木 */
+        #supply {
+            display: flex;
+            gap: 40px;
+            align-items: center;
+        }
+
+        .supply-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .supply-label {
+            font-size: 18px;
+            color: #8d99ae;
+            font-weight: bold;
+        }
+
+        /* 控制按鈕 */
+        #controls {
+            display: flex;
+            gap: 20px;
+        }
+
+        button {
+            padding: 15px 40px;
+            font-size: 24px;
+            font-weight: bold;
+            border: none;
+            border-radius: 15px;
+            cursor: pointer;
+            transition: all 0.2s;
+            box-shadow: 0 4px 0 rgba(0,0,0,0.2);
+        }
+
+        button:active {
+            transform: translateY(4px);
+            box-shadow: 0 0 0 rgba(0,0,0,0);
+        }
+
+        #btn-submit {
+            background-color: #8ac926;
+            color: white;
+        }
+        
+        #btn-hint {
+            background-color: #ffca3a;
+            color: #2b2d42;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.5s;
+        }
+        
+        #btn-hint.visible {
+            opacity: 1;
+            pointer-events: auto;
+        }
+
+        .pulse {
+            animation: pulse-animation 1.5s infinite;
+        }
+        @keyframes pulse-animation {
+            0% { box-shadow: 0 0 0 0 rgba(255, 202, 58, 0.7); }
+            70% { box-shadow: 0 0 0 20px rgba(255, 202, 58, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(255, 202, 58, 0); }
+        }
+
+        .shake {
+            animation: shake-animation 0.5s;
+        }
+        @keyframes shake-animation {
+            0% { transform: translateX(0); }
+            25% { transform: translateX(-10px); }
+            50% { transform: translateX(10px); }
+            75% { transform: translateX(-10px); }
+            100% { transform: translateX(0); }
+        }
+
+        .merge-glow {
+            box-shadow: 0 0 20px 10px #4ecdc4 !important;
+            transform: scale(1.1);
+            z-index: 10;
+        }
+        
+        /* 退位提示：十位積木閃爍 */
+        .smash-hint {
+            animation: smash-pulse 1s infinite;
+            border: 3px solid #ffca3a;
+        }
+        @keyframes smash-pulse {
+            0% { transform: scale(1); opacity: 1; }
+            50% { transform: scale(1.05); opacity: 0.7; }
+            100% { transform: scale(1); opacity: 1; }
+        }
+
+        /* 遮罩層(避免動畫時誤觸) */
+        #overlay {
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            z-index: 9999;
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <div id="overlay"></div>
+
+    <header id="header">
+        <div id="title-badge">🥚 初學者</div>
+        <div id="score-display"></div>
+    </header>
+
+    <div id="question-area">準備好開始了嗎？</div>
+
+    <div id="board">
+        <div class="column" id="col-100">
+            <div class="col-header">百位</div>
+            <div id="hundreds-container" class="tens-container"></div>
+        </div>
+        <div class="column" id="col-10">
+            <div class="col-header">十位</div>
+            <!-- 提示：點擊這裡的積木可以退位 -->
+            <div style="font-size: 14px; color: #8d99ae; margin-bottom: 10px;">(點擊積木可退位)</div>
+            <div id="tens-container" class="tens-container"></div>
+        </div>
+        <div class="column" id="col-1">
+            <div class="col-header">個位</div>
+            <div style="font-size: 14px; color: #8d99ae; margin-bottom: 10px;">(點擊積木可移除)</div>
+            <div class="ten-frame" id="ones-frame">
+                <!-- 由 JS 生成 10 個格子 -->
+            </div>
+        </div>
+    </div>
+
+    <div id="bottom-area">
+        <div id="supply">
+            <!-- 這些是供學生拖曳的「積木來源」 -->
+            <div class="supply-item">
+                <div class="block block-100 supply-block" data-val="100"></div>
+                <div class="supply-label">百 (100)</div>
+            </div>
+            <div class="supply-item">
+                <div class="block block-10 supply-block" style="height: 80px;" data-val="10"></div>
+                <div class="supply-label">十 (10)</div>
+            </div>
+            <div class="supply-item">
+                <div class="block block-1 supply-block" data-val="1"></div>
+                <div class="supply-label">一 (1)</div>
+            </div>
+        </div>
+        <div id="controls">
+            <button id="btn-hint">需要提示</button>
+            <button id="btn-submit">提交答案</button>
+        </div>
+    </div>
+
+    <script>
+        // --- 狀態管理 ---
+        let state = {
+            hundreds: 0,
+            tens: 0,
+            ones: 0,
+            targetValue: 0,
+            score: 0,
+            mode: 'init' // 'init', 'playing'
+        };
+
+        // --- 稱號系統設定 ---
+        const titles = [
+            { threshold: 0, name: "🥚 初學者", color: "#8d99ae" },
+            { threshold: 5, name: "🥉 數學小幫手", color: "#cd7f32" },
+            { threshold: 10, name: "🥈 積木高手", color: "#c0c0c0" },
+            { threshold: 15, name: "🥇 位值大師！", color: "#ffd700" }
+        ];
+
+        // --- Web Audio API 音效引擎 (無須外部檔案) ---
+        const AudioContext = window.AudioContext || window.webkitAudioContext;
+        const audioCtx = new AudioContext();
+
+        function playSound(type) {
+            if (audioCtx.state === 'suspended') audioCtx.resume();
+            const osc = audioCtx.createOscillator();
+            const gainNode = audioCtx.createGain();
+            osc.connect(gainNode);
+            gainNode.connect(audioCtx.destination);
+
+            const now = audioCtx.currentTime;
+            
+            if (type === 'click') {
+                // 輕輕的木頭聲 (拿起積木)
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(400, now);
+                osc.frequency.exponentialRampToValueAtTime(100, now + 0.1);
+                gainNode.gain.setValueAtTime(0.5, now);
+                gainNode.gain.exponentialRampToValueAtTime(0.01, now + 0.1);
+                osc.start(now); osc.stop(now + 0.1);
+            } else if (type === 'drop') {
+                // 扣上的聲音 (放下積木)
+                osc.type = 'triangle';
+                osc.frequency.setValueAtTime(300, now);
+                osc.frequency.exponentialRampToValueAtTime(150, now + 0.1);
+                gainNode.gain.setValueAtTime(0.5, now);
+                gainNode.gain.linearRampToValueAtTime(0.01, now + 0.1);
+                osc.start(now); osc.stop(now + 0.1);
+            } else if (type === 'correct') {
+                // 答對：清脆的叮咚
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(523.25, now); // C5
+                osc.frequency.setValueAtTime(659.25, now + 0.1); // E5
+                gainNode.gain.setValueAtTime(0, now);
+                gainNode.gain.linearRampToValueAtTime(0.3, now + 0.05);
+                gainNode.gain.linearRampToValueAtTime(0, now + 0.3);
+                osc.start(now); osc.stop(now + 0.3);
+            } else if (type === 'wrong') {
+                // 答錯：溫和的低音
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(200, now);
+                osc.frequency.linearRampToValueAtTime(150, now + 0.3);
+                gainNode.gain.setValueAtTime(0.3, now);
+                gainNode.gain.linearRampToValueAtTime(0, now + 0.3);
+                osc.start(now); osc.stop(now + 0.3);
+            } else if (type === 'merge') {
+                // 進位魔法音效
+                osc.type = 'square';
+                osc.frequency.setValueAtTime(300, now);
+                osc.frequency.linearRampToValueAtTime(800, now + 0.4);
+                gainNode.gain.setValueAtTime(0.1, now);
+                gainNode.gain.linearRampToValueAtTime(0, now + 0.4);
+                osc.start(now); osc.stop(now + 0.4);
+            } else if (type === 'smash') {
+                // 退位碎裂聲
+                osc.type = 'sawtooth';
+                osc.frequency.setValueAtTime(200, now);
+                osc.frequency.exponentialRampToValueAtTime(50, now + 0.2);
+                gainNode.gain.setValueAtTime(0.2, now);
+                gainNode.gain.linearRampToValueAtTime(0, now + 0.2);
+                osc.start(now); osc.stop(now + 0.2);
+            } else if (type === 'levelUp') {
+                // 稱號升級
+                osc.type = 'square';
+                [523.25, 659.25, 783.99, 1046.50].forEach((freq, i) => {
+                    osc.frequency.setValueAtTime(freq, now + i*0.15);
+                });
+                gainNode.gain.setValueAtTime(0.2, now);
+                gainNode.gain.linearRampToValueAtTime(0, now + 0.8);
+                osc.start(now); osc.stop(now + 0.8);
+            }
+        }
+
+        // 初始化十格陣
+        const onesFrame = document.getElementById('ones-frame');
+        for (let i = 0; i < 10; i++) {
+            const cell = document.createElement('div');
+            cell.className = 'frame-cell';
+            cell.id = `cell-${i}`;
+            onesFrame.appendChild(cell);
+        }
+
+        // 根據 state 重新渲染位階表上的積木
+        function renderBoard() {
+            // 清空現有
+            document.getElementById('hundreds-container').innerHTML = '';
+            document.getElementById('tens-container').innerHTML = '';
+            document.querySelectorAll('.frame-cell').forEach(cell => cell.innerHTML = '');
+
+            // 渲染百位
+            for(let i=0; i<state.hundreds; i++) {
+                let block = document.createElement('div');
+                block.className = 'block block-100';
+                document.getElementById('hundreds-container').appendChild(block);
+            }
+
+            // 渲染十位 (加入點擊退位功能)
+            for(let i=0; i<state.tens; i++) {
+                let block = document.createElement('div');
+                block.className = 'block block-10';
+                block.onclick = () => smashTen(block);
+                document.getElementById('tens-container').appendChild(block);
+            }
+
+            // 渲染個位 (填入十格陣)
+            for(let i=0; i<state.ones; i++) {
+                if(i < 10) {
+                    let block = document.createElement('div');
+                    block.className = 'block block-1';
+                    // 個位數積木允許點擊移除
+                    block.onclick = (e) => {
+                        e.stopPropagation();
+                        if(state.ones > 0) {
+                            state.ones--;
+                            playSound('click');
+                            renderBoard();
+                            resetHintTimer();
+                        }
+                    };
+                    document.getElementById(`cell-${i}`).appendChild(block);
+                }
+            }
+            updateScoreUI();
+        }
+
+        
+        // 檢查是否需要自動進位 (滿10個黃色積木)
+        function checkAutoCarry() {
+            if (state.ones >= 10) {
+                // 鎖定畫面避免干擾
+                document.getElementById('overlay').style.display = 'block';
+                playSound('merge');
+                
+                // 讓十格陣裡的積木發光
+                document.querySelectorAll('#ones-frame .block-1').forEach(b => b.classList.add('merge-glow'));
+
+                // 等待半秒後，轉化為十位
+                setTimeout(() => {
+                    state.ones -= 10;
+                    state.tens += 1;
+                    
+                    // 如果十位也滿10，也可以進位(但本系統專注於200以內，且十位進百位視覺較複雜，暫先處理個位進位)
+                    if(state.tens >= 10) {
+                         state.tens -= 10;
+                         state.hundreds += 1;
+                    }
+
+                    renderBoard();
+                    document.getElementById('overlay').style.display = 'none';
+                }, 600);
+            }
+        }
+
+        // 退位功能：點擊十位積木，碎裂成10個個位
+        function smashTen(blockElement) {
+            // 只有當個位數有空位，且確實需要退位時才允許操作(避免亂點)
+            // 為了讓 ADD 學生不被限制死，我們允許他自由敲碎，只要個位數加起來不超過限制
+            if (state.tens > 0 && state.ones === 0) { 
+                playSound('smash');
+                blockElement.style.transform = 'scale(0.1)';
+                blockElement.style.opacity = '0';
+                
+                setTimeout(() => {
+                    state.tens--;
+                    state.ones += 10;
+                    renderBoard();
+                }, 200);
+                resetHintTimer();
+            } else {
+                 // 輕微提示他現在不需要敲碎
+                 blockElement.classList.add('shake');
+                 setTimeout(()=>blockElement.classList.remove('shake'), 500);
+            }
+        }
+
+        
+        let dragItem = null;
+        let originalVal = 0;
+
+        document.querySelectorAll('.supply-block').forEach(supply => {
+            supply.addEventListener('pointerdown', (e) => {
+                e.preventDefault();
+                playSound('click');
+                resetHintTimer();
+
+                originalVal = parseInt(supply.getAttribute('data-val'));
+                
+                // 複製一個元素跟著游標/手指移動
+                dragItem = supply.cloneNode(true);
+                dragItem.classList.add('dragging');
+                dragItem.style.left = e.pageX - dragItem.offsetWidth / 2 + 'px';
+                dragItem.style.top = e.pageY - dragItem.offsetHeight / 2 + 'px';
+                document.body.appendChild(dragItem);
+                
+                // 移除原有的 CSS transform 以免定位偏移
+                dragItem.style.transform = 'none'; 
+            });
+        });
+
+        document.addEventListener('pointermove', (e) => {
+            if (!dragItem) return;
+            e.preventDefault();
+            dragItem.style.left = e.pageX - dragItem.offsetWidth / 2 + 'px';
+            dragItem.style.top = e.pageY - dragItem.offsetHeight / 2 + 'px';
+        });
+
+        document.addEventListener('pointerup', (e) => {
+            if (!dragItem) return;
+            
+            // 檢查放下的位置在哪個欄位
+            dragItem.style.display = 'none'; // 隱藏拖曳物以便偵測下方元素
+            const dropTarget = document.elementFromPoint(e.clientX, e.clientY);
+            dragItem.style.display = 'block';
+
+            let added = false;
+            if (dropTarget) {
+                const col = dropTarget.closest('.column');
+                if (col) {
+                    if (col.id === 'col-100' && originalVal === 100) { state.hundreds++; added = true; }
+                    else if (col.id === 'col-10' && originalVal === 10) { state.tens++; added = true; }
+                    else if (col.id === 'col-1' && originalVal === 1) { 
+                        if(state.ones < 10) { // 限制個位最多放10個觸發進位
+                            state.ones++; 
+                            added = true; 
+                        }
+                    }
+                }
+            }
+
+            if (added) {
+                playSound('drop');
+                renderBoard();
+                checkAutoCarry();
+            } else {
+                // 放錯位置或放開，就讓他消失
+            }
+
+            dragItem.remove();
+            dragItem = null;
+        });
+
+        
+        let hintTimeout;
+
+        function startNewQuestion() {
+            state.mode = 'playing';
+            document.getElementById('btn-hint').classList.remove('visible');
+            clearHints();
+
+            // 產生 1 到 190 的基準數字
+            let base = Math.floor(Math.random() * 150) + 20; 
+            
+            // 決定題型：0: +1, 1: -1, 2: +10, 3: -10
+            let type = Math.floor(Math.random() * 4);
+            let changeStr = "";
+            let diff = 0;
+
+            switch(type) {
+                case 0: diff = 1; changeStr = "增加 1"; break;
+                case 1: diff = -1; changeStr = "拿走 1"; break;
+                case 2: diff = 10; changeStr = "增加 10"; break;
+                case 3: diff = -10; changeStr = "拿走 10"; break;
+            }
+
+            state.targetValue = base + diff;
+            
+            // 設定初始盤面為 Base (讓學生從 Base 開始操作)
+            state.hundreds = Math.floor(base / 100);
+            state.tens = Math.floor((base % 100) / 10);
+            state.ones = base % 10;
+
+            document.getElementById('question-area').innerHTML = 
+                `${base} <span style="color:#ff6b6b">變成</span> ${state.targetValue}<br>
+                 <span style="font-size:24px; color:#8d99ae">請操作積木（${changeStr}）</span>`;
+            
+            renderBoard();
+            resetHintTimer();
+        }
+
+        
+        function clearHints() {
+            document.querySelectorAll('.pulse, .smash-hint').forEach(el => {
+                el.classList.remove('pulse');
+                el.classList.remove('smash-hint');
+            });
+        }
+
+        function resetHintTimer() {
+            clearTimeout(hintTimeout);
+            clearHints();
+            if(state.mode === 'playing') {
+                hintTimeout = setTimeout(() => {
+                    document.getElementById('btn-hint').classList.add('visible');
+                }, 5000); // 5秒沒動作顯示提示按鈕
+            }
+        }
+
+        // 學生按下提示按鈕
+        document.getElementById('btn-hint').addEventListener('click', () => {
+            playSound('click');
+            let currentVal = state.hundreds * 100 + state.tens * 10 + state.ones;
+            
+            if (currentVal < state.targetValue) {
+                // 需要增加：讓下方對應的積木供應區閃爍
+                let diff = state.targetValue - currentVal;
+                if (diff === 1) document.querySelector('.block-1.supply-block').parentElement.classList.add('pulse');
+                if (diff === 10) document.querySelector('.block-10.supply-block').parentElement.classList.add('pulse');
+            } else if (currentVal > state.targetValue) {
+                // 需要減少：如果個位數不夠減，提示敲碎十位
+                if (state.targetValue % 10 < currentVal % 10 && state.ones > 0) {
+                     // 提示點擊個位數移除
+                     document.getElementById('col-1').classList.add('pulse');
+                } else if (state.ones === 0 && state.tens > 0) {
+                     // 提示敲碎十位
+                     document.querySelectorAll('#tens-container .block-10')[0]?.classList.add('smash-hint');
+                } else if (currentVal - state.targetValue >= 10) {
+                     // 提示移除十位 (本系統目前簡化為點擊十位會碎裂，若要移除需讓碎裂後的10個個位再被移除，
+                     // 但為符合題意-10，直接點擊十位退位是好的第一步)
+                     document.getElementById('col-10').classList.add('pulse');
+                }
+            }
+        });
+
+        // 提交答案
+        document.getElementById('btn-submit').addEventListener('click', () => {
+            if(state.mode !== 'playing') return;
+
+            let currentVal = state.hundreds * 100 + state.tens * 10 + state.ones;
+            
+            if (currentVal === state.targetValue) {
+                // 答對了
+                playSound('correct');
+                state.score++;
+                checkTitleUpgrade();
+                
+                document.getElementById('question-area').innerHTML = `<span style="color:#8ac926">太棒了！答對了！</span>`;
+                document.getElementById('board').classList.add('pulse'); // 綠色發光
+                
+                state.mode = 'init';
+                clearTimeout(hintTimeout);
+                document.getElementById('btn-hint').classList.remove('visible');
+
+                setTimeout(() => {
+                    document.getElementById('board').classList.remove('pulse');
+                    startNewQuestion();
+                }, 2000);
+            } else {
+                // 答錯了
+                playSound('wrong');
+                let board = document.getElementById('board');
+                board.classList.add('shake');
+                setTimeout(() => board.classList.remove('shake'), 500);
+                // 不自動扣分，鼓勵他繼續嘗試
+                resetHintTimer(); 
+            }
+        });
+
+        // 更新分數與稱號
+        function checkTitleUpgrade() {
+            let currentTitle = titles[0];
+            let upgradeHappened = false;
+
+            for (let i = titles.length - 1; i >= 0; i--) {
+                if (state.score >= titles[i].threshold) {
+                    currentTitle = titles[i];
+                    // 檢查是否剛好達到新門檻
+                    if (state.score === titles[i].threshold && state.score > 0) {
+                        upgradeHappened = true;
+                    }
+                    break;
+                }
+            }
+
+            if (upgradeHappened) {
+                setTimeout(() => playSound('levelUp'), 500);
+                // 可以在這裡加入放煙火的特效，目前保持極簡
+            }
+
+            document.getElementById('title-badge').innerHTML = `<span style="color:${currentTitle.color}">${currentTitle.name}</span>`;
+            
+            // 更新進度顯示 (星星)
+            let stars = "";
+            let nextThreshold = titles.find(t => t.threshold > state.score)?.threshold || state.score;
+            let maxStars = 5; // 每個階段5顆星
+            let currentStars = state.score % 5;
+            if (state.score >= 15) currentStars = 5; // 滿級
+
+            for(let i=0; i<maxStars; i++) {
+                stars += i < currentStars ? "⭐" : "☆";
+            }
+            document.getElementById('score-display').innerText = stars;
+        }
+
+        function updateScoreUI() {
+            // 這個函數可以在分數變動時強制更新 UI，目前已經整合在 checkTitleUpgrade 裡
+        }
+
+        // 初始化開始
+        window.onload = () => {
+            checkTitleUpgrade();
+            setTimeout(startNewQuestion, 1000);
+            
+            // 必須在使用者首次點擊畫面時啟動 AudioContext (瀏覽器安全限制)
+            document.body.addEventListener('pointerdown', function initAudio() {
+                if (audioCtx.state === 'suspended') {
+                    audioCtx.resume();
+                }
+                document.body.removeEventListener('pointerdown', initAudio);
+            }, { once: true });
+        };
+    </script>
+</body>
+</html>
