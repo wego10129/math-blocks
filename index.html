@@ -13,9 +13,8 @@
         }
         .header { text-align: center; padding: 20px 0; }
         .title { font-size: 32px; font-weight: bold; color: #333; }
-        .subtitle { font-size: 18px; color: #7f8c8d; margin-top: 5px; }
+        .subtitle { font-size: 18px; color: #7f8c8d; margin-top: 5px; font-weight: bold;}
 
-        /* 位值表主區域 */
         .board { display: flex; justify-content: center; gap: 20px; padding: 10px; }
         .zone { width: 240px; height: 380px; border: 3px solid; border-radius: 10px; background: white; display: flex; flex-direction: column; align-items: center; position: relative; }
         
@@ -30,19 +29,18 @@
 
         .hint-text { font-size: 13px; color: #95a5a6; margin-top: 10px; }
 
-        /* 存放積木的容器 */
         .block-container { 
             flex-grow: 1; width: 100%; display: flex; flex-wrap: wrap; 
             justify-content: center; align-content: flex-start; gap: 10px; padding-top: 20px; 
             box-sizing: border-box;
         }
-        /* 個位數的十格陣排列法 */
-        #container-1 { width: 60px; /* 強制兩排 (20+20+gap) */ gap: 5px; }
+        /* 個位數的十格陣排列法 (強迫換行) */
+        #container-1 { width: 60px; gap: 5px; }
 
-        /* 完美的積木比例設定 (基礎單位 20x20) */
+        /* 完美的積木比例設定 (基礎單位 20x20 正方形) */
         .block { 
             cursor: pointer; position: relative; box-shadow: 2px 2px 5px rgba(0,0,0,0.3);
-            touch-action: none; -webkit-user-drag: none; 
+            touch-action: none; -webkit-user-drag: none; z-index: 10;
         }
         
         .block-1 { 
@@ -54,7 +52,6 @@
         .block-10 { 
             width: 20px; height: 200px; 
             background-color: #4dc3a3; border: 1px solid #1abc9c; border-radius: 2px;
-            /* 畫出完美的 10 個正方形格線 */
             background-image: linear-gradient(rgba(255,255,255,0.6) 1px, transparent 1px);
             background-size: 20px 20px;
             box-sizing: border-box;
@@ -63,7 +60,6 @@
         .block-100 { 
             width: 200px; height: 200px; 
             background-color: #ff6666; border: 1px solid #e74c3c; border-radius: 2px;
-            /* 畫出完美的 10x10 正方形格線 */
             background-image: 
                 linear-gradient(rgba(255,255,255,0.6) 1px, transparent 1px),
                 linear-gradient(90deg, rgba(255,255,255,0.6) 1px, transparent 1px);
@@ -71,33 +67,29 @@
             box-sizing: border-box;
         }
 
-        /* 預備區 (兼垃圾桶) */
         .footer { display: flex; justify-content: space-between; align-items: center; padding: 15px 40px; background: white; border-top: 2px solid #ecf0f1; position: fixed; bottom: 0; width: 100%; box-sizing: border-box;}
         
         .source-area { display: flex; gap: 30px; align-items: flex-end; padding: 10px 20px; border: 2px dashed #bdc3c7; border-radius: 10px; background-color: #f8f9fa; }
         .source-item { display: flex; flex-direction: column; align-items: center; touch-action: none; cursor: pointer; }
         .source-label { font-size: 14px; color: #7f8c8d; margin-top: 8px; font-weight: bold; }
         
-        /* 預備區的縮小圖示，避免佔用太多空間 */
-        .source-icon { border-radius: 2px; box-shadow: 1px 1px 3px rgba(0,0,0,0.2); }
+        /* 預備區的縮小圖示 */
+        .source-icon { border-radius: 2px; box-shadow: 1px 1px 3px rgba(0,0,0,0.2); pointer-events: none;}
         .icon-100 { width: 50px; height: 50px; background-color: #ff6666; border: 1px solid #e74c3c; background-image: linear-gradient(rgba(255,255,255,0.5) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.5) 1px, transparent 1px); background-size: 5px 5px, 5px 5px; }
         .icon-10 { width: 15px; height: 50px; background-color: #4dc3a3; border: 1px solid #1abc9c; background-image: linear-gradient(rgba(255,255,255,0.5) 1px, transparent 1px); background-size: 100% 5px; }
         .icon-1 { width: 20px; height: 20px; background-color: #f1c40f; border: 1px solid #f39c12; }
 
-        .buttons button { padding: 15px 30px; font-size: 18px; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; margin-left: 10px; }
+        .buttons button { padding: 15px 30px; font-size: 18px; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; margin-left: 10px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); transition: 0.2s;}
+        .buttons button:active { transform: translateY(2px); box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
         .btn-hint { background-color: #f1c40f; color: #333; }
         .btn-submit { background-color: #8bc34a; color: #fff; }
 
-        /* 拖曳中的分身 */
         .dragging { position: fixed; z-index: 1000; pointer-events: none; opacity: 0.9; margin: 0; }
-        
-        /* 提示閃爍特效 */
-        .flash { animation: flashAnim 0.5s 3; }
+        .flash { animation: flashAnim 0.6s 3; }
         @keyframes flashAnim { 0% { background-color: white; } 50% { background-color: #fff3cd; box-shadow: inset 0 0 20px #f1c40f; } 100% { background-color: white; } }
 
-        /* 自訂提示視窗 (取代 alert) */
         .modal-overlay {
-            position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0,0,0,0.5);
+            position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0,0,0,0.6);
             display: flex; justify-content: center; align-items: center; z-index: 2000;
             visibility: hidden; opacity: 0; transition: 0.2s;
         }
@@ -107,25 +99,29 @@
             box-shadow: 0 10px 25px rgba(0,0,0,0.2); transform: scale(0.8); transition: 0.2s; min-width: 300px;
         }
         .modal-overlay.active .modal-content { transform: scale(1); }
-        .modal-title { font-size: 28px; font-weight: bold; margin-bottom: 10px; }
-        .modal-text { font-size: 18px; color: #555; margin-bottom: 30px; }
-        .modal-btn { background: #3498db; color: white; padding: 12px 35px; border: none; border-radius: 8px; font-size: 18px; cursor: pointer; font-weight: bold; }
+        .modal-title { font-size: 32px; font-weight: bold; margin-bottom: 10px; }
+        .modal-text { font-size: 20px; color: #555; margin-bottom: 30px; }
+        .modal-btn { background: #3498db; color: white; padding: 15px 40px; border: none; border-radius: 8px; font-size: 20px; cursor: pointer; font-weight: bold; box-shadow: 0 4px 6px rgba(0,0,0,0.1);}
+        
+        /* 彩帶畫布置頂但不阻擋點擊 */
+        #confetti-canvas { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; pointer-events: none; z-index: 9999; }
     </style>
 </head>
 <body>
 
-    <!-- 自訂提示視窗 -->
+    <canvas id="confetti-canvas"></canvas>
+
     <div class="modal-overlay" id="custom-modal">
         <div class="modal-content">
             <div class="modal-title" id="modal-title">提示</div>
             <div class="modal-text" id="modal-text">訊息內容</div>
-            <button class="modal-btn" onclick="closeModal()">我知道了</button>
+            <button class="modal-btn" id="modal-btn" onclick="closeModal()">我知道了</button>
         </div>
     </div>
 
     <div class="header">
-        <div class="title">23 <span style="color: #e74c3c;">變成</span> 13</div>
-        <div class="subtitle">請操作積木（拿走 10）</div>
+        <div class="title"><span id="q-start">--</span> <span style="color: #e74c3c;">變成</span> <span id="q-target">--</span></div>
+        <div class="subtitle">請操作積木（<span id="q-action" style="color: #e74c3c;">--</span>）</div>
     </div>
 
     <div class="board">
@@ -136,22 +132,13 @@
         </div>
         <div class="zone zone-tens" id="zone-10">
             <div class="zone-title">十位</div>
-            <div class="hint-text">(點擊可退位/拖至左下移除)</div>
-            <div class="block-container" id="container-10">
-                <!-- 預設：2 個十位積木 -->
-                <div class="block block-10" data-value="10"></div>
-                <div class="block block-10" data-value="10"></div>
-            </div>
+            <div class="hint-text">(點一下可退位/拖至左下移除)</div>
+            <div class="block-container" id="container-10"></div>
         </div>
         <div class="zone zone-ones" id="zone-1">
             <div class="zone-title">個位</div>
             <div class="hint-text">(拖至左下移除)</div>
-            <div class="block-container" id="container-1">
-                <!-- 預設：3 個個位積木 -->
-                <div class="block block-1" data-value="1"></div>
-                <div class="block block-1" data-value="1"></div>
-                <div class="block block-1" data-value="1"></div>
-            </div>
+            <div class="block-container" id="container-1"></div>
         </div>
     </div>
 
@@ -177,12 +164,75 @@
     </div>
 
 <script>
-    // 阻擋原生拖曳，保證不出現禁止符號
-    document.addEventListener('dragstart', (e) => e.preventDefault());
+    let currentTarget = 0;
+    let currentStart = 0;
+    let currentActionText = "";
+    let isSuccessState = false; // 紀錄目前是否答對，用來決定按鈕行為
+
+    // 頁面載入時初始化第一題
+    window.onload = function() {
+        initGame();
+        initConfetti();
+    };
+
+    function initGame() {
+        // 清空所有積木
+        document.getElementById('container-100').innerHTML = '';
+        document.getElementById('container-10').innerHTML = '';
+        document.getElementById('container-1').innerHTML = '';
+        
+        // 停止彩帶
+        stopConfetti();
+
+        // 隨機決定變化的數值 (1 或 10)
+        const diffOptions = [1, 10];
+        const diff = diffOptions[Math.floor(Math.random() * diffOptions.length)];
+        
+        // 隨機決定加(放入) 或 減(拿走)
+        const isAdd = Math.random() > 0.5;
+
+        // 產生起始數字 (確保在合理範圍 20 ~ 180 之間，避免爆表)
+        currentStart = Math.floor(Math.random() * 160) + 20; 
+        
+        if (isAdd) {
+            currentTarget = currentStart + diff;
+            currentActionText = `放入 ${diff}`;
+        } else {
+            currentTarget = currentStart - diff;
+            currentActionText = `拿走 ${diff}`;
+        }
+
+        // 更新畫面文字
+        document.getElementById('q-start').innerText = currentStart;
+        document.getElementById('q-target').innerText = currentTarget;
+        document.getElementById('q-action').innerText = currentActionText;
+
+        // 繪製初始積木 (靜音繪製)
+        renderBlocks(currentStart, false);
+    }
+
+    // 根據數字產生對應的積木
+    function renderBlocks(num, playSoundEffect = true) {
+        const h = Math.floor(num / 100);
+        const t = Math.floor((num % 100) / 10);
+        const o = num % 10;
+
+        for(let i=0; i<h; i++) addBlock('100', playSoundEffect);
+        for(let i=0; i<t; i++) addBlock('10', playSoundEffect);
+        for(let i=0; i<o; i++) addBlock('1', playSoundEffect);
+    }
+
+    function addBlock(val, playSnd = true) {
+        const newBlock = document.createElement('div');
+        newBlock.className = `block block-${val}`;
+        newBlock.setAttribute('data-value', val);
+        document.getElementById(`container-${val}`).appendChild(newBlock);
+        if(playSnd) playSound(800, 'sine');
+    }
 
     let draggedElement = null;
     let dragClone = null;
-    let dragType = ''; // 'new' 從下方來, 'move' 從上方來
+    let dragType = ''; 
     let startX = 0, startY = 0;
     let isDragging = false;
     let blockValue = null;
@@ -192,9 +242,8 @@
     document.addEventListener('pointerup', handlePointerUp);
 
     function handlePointerDown(e) {
-        // 防止觸控螢幕縮放或預設滾動
         if(e.target.closest('.block') || e.target.closest('.source-item')) {
-            e.preventDefault();
+            e.preventDefault(); 
         }
 
         const block = e.target.closest('.block');
@@ -206,21 +255,19 @@
             blockValue = block.getAttribute('data-value');
             startX = e.clientX;
             startY = e.clientY;
-            isDragging = false; // 初始算作點擊，移動後才變拖曳
+            isDragging = false; // 初始算點擊
             
-            // 產生分身
             dragClone = block.cloneNode(true);
             dragClone.classList.add('dragging');
             document.body.appendChild(dragClone);
             moveClone(e.clientX, e.clientY);
-            block.style.opacity = '0.3'; // 原本的變半透明
+            block.style.opacity = '0.3'; 
         } 
         else if (sourceItem) {
             dragType = 'new';
             blockValue = sourceItem.getAttribute('data-source');
             isDragging = true;
             
-            // 從預備區拉出來時，產生一個實體大小的積木分身
             dragClone = document.createElement('div');
             dragClone.className = `block block-${blockValue} dragging`;
             document.body.appendChild(dragClone);
@@ -232,7 +279,7 @@
         if (!dragClone) return;
         e.preventDefault(); 
         
-        // 如果移動超過 5px，就判定為「拖曳」而不是「單擊」
+        // 移動超過 5px 判定為拖曳
         if (!isDragging && dragType === 'move') {
             if (Math.abs(e.clientX - startX) > 5 || Math.abs(e.clientY - startY) > 5) {
                 isDragging = true;
@@ -258,59 +305,107 @@
         dragClone.remove();
         dragClone = null;
 
-        // 如果只是輕輕「點擊」(沒移動)，且是十位數，執行退位打碎
+        // 單擊十位數退位邏輯
         if (dragType === 'move' && !isDragging) {
             draggedElement.style.opacity = '1';
-            if (blockValue === '10') {
-                breakTenBlock(draggedElement);
+            if (blockValue === '10' || blockValue === '100') {
+                breakBlock(draggedElement, blockValue);
             }
             draggedElement = null;
             return;
         }
 
-        // 放下時的邏輯判斷
         const targetElement = document.elementFromPoint(dropX, dropY);
         const targetZone = targetElement ? targetElement.closest('.zone') : null;
         const sourceAreaRect = document.getElementById('source-area').getBoundingClientRect();
         
-        // 判斷是否丟回左下角垃圾桶區
+        // 是否丟入垃圾桶
         const isDroppedInSource = (
             dropX >= sourceAreaRect.left && dropX <= sourceAreaRect.right &&
             dropY >= sourceAreaRect.top && dropY <= sourceAreaRect.bottom
         );
 
         if (dragType === 'new') {
-            // 從預備區新增積木到位值表
             if (targetZone && targetZone.id === `zone-${blockValue}`) {
                 addBlock(blockValue);
             }
         } else if (dragType === 'move') {
-            // 從位值表丟到垃圾桶
             if (isDroppedInSource) {
-                draggedElement.remove(); // 徹底刪除
+                draggedElement.remove(); 
                 playSound(400, 'square');
             } else {
-                draggedElement.style.opacity = '1'; // 沒丟準，恢復原狀
+                draggedElement.style.opacity = '1'; 
             }
         }
         draggedElement = null;
     }
 
-    function addBlock(val) {
-        const newBlock = document.createElement('div');
-        newBlock.className = `block block-${val}`;
-        newBlock.setAttribute('data-value', val);
-        document.getElementById(`container-${val}`).appendChild(newBlock);
-        playSound(800, 'sine');
-    }
-
-    function breakTenBlock(block) {
+    function breakBlock(block, val) {
         block.remove();
-        for(let i=0; i<10; i++) addBlock('1');
+        if (val === '10') {
+            for(let i=0; i<10; i++) addBlock('1');
+        } else if (val === '100') {
+            for(let i=0; i<10; i++) addBlock('10');
+        }
         playSound(600, 'triangle');
     }
 
-    // 簡易音效系統
+    function checkAnswer() {
+        const h = document.querySelectorAll('#container-100 .block-100').length;
+        const t = document.querySelectorAll('#container-10 .block-10').length;
+        const o = document.querySelectorAll('#container-1 .block-1').length;
+        
+        const total = h * 100 + t * 10 + o;
+        
+        if (total === currentTarget) {
+            isSuccessState = true;
+            playSound(1000, 'sine');
+            setTimeout(() => playSound(1200, 'sine'), 150); // 歡呼音效
+            startConfetti();
+            showModal('恭喜答對！', `太棒了！你成功把 ${currentStart} 變成了 ${currentTarget}。`, true);
+        } else {
+            isSuccessState = false;
+            playSound(300, 'triangle');
+            showModal('再試試看', `目前的積木總數是 ${total}，\n請按照提示把積木變成 ${currentTarget} 喔！`, false);
+        }
+    }
+
+    function showModal(title, text, isSuccess) {
+        document.getElementById('modal-title').innerText = title;
+        document.getElementById('modal-title').style.color = isSuccess ? '#27ae60' : '#e74c3c';
+        document.getElementById('modal-text').innerText = text;
+        
+        // 根據是否成功改變按鈕文字
+        const btn = document.getElementById('modal-btn');
+        btn.innerText = isSuccess ? '進入下一題' : '我知道了';
+        btn.style.backgroundColor = isSuccess ? '#27ae60' : '#3498db';
+
+        document.getElementById('custom-modal').classList.add('active');
+    }
+
+    function closeModal() {
+        document.getElementById('custom-modal').classList.remove('active');
+        // 如果目前是答對狀態，關閉視窗時自動進入下一題
+        if (isSuccessState) {
+            initGame();
+            isSuccessState = false;
+        }
+    }
+
+    function playHint() {
+        playSound(700, 'sine');
+        // 動態決定要閃爍哪一區
+        let hintZoneId = 'zone-1'; // 預設
+        if (currentActionText.includes('10')) hintZoneId = 'zone-10';
+
+        const targetZone = document.getElementById(hintZoneId);
+        targetZone.classList.remove('flash'); 
+        void targetZone.offsetWidth; 
+        targetZone.classList.add('flash');
+        
+        showModal('溫馨提示', `題目要求「${currentActionText}」。\n請注意畫面上閃爍的黃色框框區域喔！`, false);
+    }
+
     const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
     function playSound(freq, type) {
         if(audioCtx.state === 'suspended') audioCtx.resume();
@@ -326,44 +421,68 @@
         osc.stop(audioCtx.currentTime + 0.3);
     }
 
-    // 彈出視窗控制
-    function showModal(title, text, isSuccess) {
-        document.getElementById('modal-title').innerText = title;
-        document.getElementById('modal-title').style.color = isSuccess ? '#27ae60' : '#e74c3c';
-        document.getElementById('modal-text').innerText = text;
-        document.getElementById('custom-modal').classList.add('active');
-    }
-    function closeModal() {
-        document.getElementById('custom-modal').classList.remove('active');
+    // 彩帶特效 (Confetti)
+    let confettiParticles = [];
+    let confettiAnimId = null;
+    const canvas = document.getElementById('confetti-canvas');
+    const ctx = canvas.getContext('2d');
+
+    function initConfetti() {
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
     }
 
-    // 檢查答案按鈕
-    function checkAnswer() {
-        const h = document.querySelectorAll('#container-100 .block-100').length;
-        const t = document.querySelectorAll('#container-10 .block-10').length;
-        const o = document.querySelectorAll('#container-1 .block-1').length;
+    window.addEventListener('resize', initConfetti);
+
+    function startConfetti() {
+        confettiParticles = [];
+        const colors = ['#f1c40f', '#e74c3c', '#3498db', '#2ecc71', '#9b59b6'];
+        for (let i = 0; i < 150; i++) {
+            confettiParticles.push({
+                x: canvas.width / 2,
+                y: canvas.height / 2 + 100,
+                r: Math.random() * 6 + 4,
+                dx: Math.random() * 20 - 10,
+                dy: Math.random() * -15 - 5,
+                color: colors[Math.floor(Math.random() * colors.length)],
+                tilt: Math.random() * 10
+            });
+        }
+        cancelAnimationFrame(confettiAnimId);
+        renderConfetti();
+    }
+
+    function renderConfetti() {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        let active = false;
         
-        const total = h * 100 + t * 10 + o;
-        
-        if (total === 13) {
-            playSound(1000, 'sine');
-            showModal('恭喜答對！', '你成功拿走 10，把 23 變成了 13，太棒了！', true);
+        confettiParticles.forEach(p => {
+            p.dy += 0.5; // 重力
+            p.x += p.dx;
+            p.y += p.dy;
+            p.tilt += 0.1;
+
+            if (p.y < canvas.height) active = true;
+
+            ctx.beginPath();
+            ctx.lineWidth = p.r;
+            ctx.strokeStyle = p.color;
+            ctx.moveTo(p.x + p.tilt + p.r, p.y);
+            ctx.lineTo(p.x + p.tilt, p.y + p.tilt + p.r);
+            ctx.stroke();
+        });
+
+        if (active) {
+            confettiAnimId = requestAnimationFrame(renderConfetti);
         } else {
-            playSound(300, 'triangle');
-            showModal('再試試看', `目前的積木總數是 ${total}，\n請操作積木，讓它變成 13 喔！`, false);
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
         }
     }
-    
-    // 提示按鈕
-    function playHint() {
-        playSound(700, 'sine');
-        // 讓十位數區塊閃爍
-        const zone10 = document.getElementById('zone-10');
-        zone10.classList.remove('flash'); // 重置動畫
-        void zone10.offsetWidth; // 觸發重繪
-        zone10.classList.add('flash');
-        
-        showModal('溫馨提示', '題目要求「拿走 10」。\n請按住【十位】區域裡的 1 個綠色積木，拖曳到左下角的預備區丟掉！', true);
+
+    function stopConfetti() {
+        cancelAnimationFrame(confettiAnimId);
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        confettiParticles = [];
     }
 </script>
 </body>
