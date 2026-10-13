@@ -5,19 +5,19 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>位值積木操作</title>
     <style>
+        /* 基礎防呆，徹底防止 iPad 瀏覽器原生手勢干擾 */
         body { 
             margin: 0; font-family: '微軟正黑體', sans-serif; background-color: #f4f7f9; 
-            touch-action: none; /* 防止 iOS Safari 原生捲動 */
-            user-select: none; /* 防止文字反白 */
-            -webkit-user-select: none;
-            overflow: hidden; /* 防止整個畫面被拖動 */
+            touch-action: none; user-select: none; -webkit-user-select: none; -webkit-user-drag: none;
+            overflow: hidden;
         }
         .header { text-align: center; padding: 20px 0; }
-        .title { font-size: 28px; font-weight: bold; color: #333; }
+        .title { font-size: 32px; font-weight: bold; color: #333; }
         .subtitle { font-size: 18px; color: #7f8c8d; margin-top: 5px; }
 
+        /* 位值表主區域 */
         .board { display: flex; justify-content: center; gap: 20px; padding: 10px; }
-        .zone { width: 220px; height: 380px; border: 3px solid; border-radius: 10px; background: white; display: flex; flex-direction: column; align-items: center; position: relative; }
+        .zone { width: 240px; height: 380px; border: 3px solid; border-radius: 10px; background: white; display: flex; flex-direction: column; align-items: center; position: relative; }
         
         .zone-hundreds { border-color: #ff9999; }
         .zone-tens { border-color: #99e6cc; }
@@ -28,90 +28,60 @@
         .zone-tens .zone-title { background-color: #4dc3a3; }
         .zone-ones .zone-title { background-color: #f1c40f; }
 
-        .hint-text { font-size: 12px; color: #bdc3c7; margin-top: 10px; pointer-events: none; }
+        .hint-text { font-size: 13px; color: #95a5a6; margin-top: 10px; }
 
-        /* 基礎積木樣式 */
-        .block {
-            cursor: grab;
-            touch-action: none;
-            -webkit-user-drag: none; /* 絕對防止瀏覽器原生拖曳出現禁止符號 */
-            user-select: none;
-            box-shadow: 2px 2px 5px rgba(0,0,0,0.2);
-            position: relative;
+        /* 存放積木的容器 */
+        .block-container { 
+            flex-grow: 1; width: 100%; display: flex; flex-wrap: wrap; 
+            justify-content: center; align-content: flex-start; gap: 10px; padding-top: 20px; 
+            box-sizing: border-box;
         }
-        .block:active { cursor: grabbing; }
+        /* 個位數的十格陣排列法 */
+        #container-1 { width: 60px; /* 強制兩排 (20+20+gap) */ gap: 5px; }
+
+        /* 完美的積木比例設定 (基礎單位 20x20) */
+        .block { 
+            cursor: pointer; position: relative; box-shadow: 2px 2px 5px rgba(0,0,0,0.3);
+            touch-action: none; -webkit-user-drag: none; 
+        }
         
-        /* 1的積木 (20x20 正方形) */
         .block-1 { 
             width: 20px; height: 20px; 
-            background-color: #f1c40f; 
-            border: 1px solid #d4ac0d; 
-            border-radius: 2px;
+            background-color: #f1c40f; border: 1px solid #d4ac0d; border-radius: 2px;
             box-sizing: border-box;
         }
         
-        /* 10的積木 (20x200，由10個完美正方形組成) */
         .block-10 { 
             width: 20px; height: 200px; 
-            background-color: #4dc3a3; 
-            border: 1px solid #1abc9c; 
-            border-radius: 2px;
-            box-sizing: border-box;
-            /* 利用漸層畫出完美的 20px 正方形分隔線 */
+            background-color: #4dc3a3; border: 1px solid #1abc9c; border-radius: 2px;
+            /* 畫出完美的 10 個正方形格線 */
             background-image: linear-gradient(rgba(255,255,255,0.6) 1px, transparent 1px);
             background-size: 20px 20px;
+            box-sizing: border-box;
         }
-
-        /* 100的積木 (200x200，由10x10完美正方形組成) */
+        
         .block-100 { 
             width: 200px; height: 200px; 
-            background-color: #ff6666; 
-            border: 1px solid #e74c3c; 
-            border-radius: 2px;
-            box-sizing: border-box;
-            /* 畫出 10x10 的網格線 */
+            background-color: #ff6666; border: 1px solid #e74c3c; border-radius: 2px;
+            /* 畫出完美的 10x10 正方形格線 */
             background-image: 
-                linear-gradient(rgba(255,255,255,0.5) 1px, transparent 1px),
-                linear-gradient(90deg, rgba(255,255,255,0.5) 1px, transparent 1px);
+                linear-gradient(rgba(255,255,255,0.6) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(255,255,255,0.6) 1px, transparent 1px);
             background-size: 20px 20px, 20px 20px;
+            box-sizing: border-box;
         }
 
-        /* 百位數容器 (層疊放) */
-        #container-100 {
-            position: relative; width: 100%; height: 100%; padding-top: 20px; display: flex; justify-content: center;
-        }
-        #container-100 .block-100 { position: absolute; }
-        #container-100 .block-100:nth-child(1) { top: 20px; left: 8px; }
-        #container-100 .block-100:nth-child(2) { top: 35px; left: 15px; } /* 如果有兩個100，製造堆疊感 */
-
-        /* 十位數容器 (橫向排列) */
-        #container-10 {
-            display: flex; flex-wrap: wrap; justify-content: center; gap: 5px; padding: 20px 10px; width: 100%; box-sizing: border-box;
-        }
-
-        /* 個位數容器 (十格陣) */
-        .ten-frame-wrapper { position: relative; padding-top: 20px; }
-        .ten-frame-bg {
-            display: grid; grid-template-columns: repeat(2, 20px); grid-template-rows: repeat(5, 20px); gap: 5px; opacity: 0.5;
-        }
-        .ten-frame-bg .slot { width: 20px; height: 20px; border: 2px dashed #bdc3c7; border-radius: 2px; box-sizing: border-box; }
-        
-        #container-1 {
-            display: grid; grid-template-columns: repeat(2, 20px); grid-auto-rows: 20px; gap: 5px; 
-            position: absolute; top: 20px; left: 0; z-index: 2;
-        }
-
-        /* 底部與預備區 */
+        /* 預備區 (兼垃圾桶) */
         .footer { display: flex; justify-content: space-between; align-items: center; padding: 15px 40px; background: white; border-top: 2px solid #ecf0f1; position: fixed; bottom: 0; width: 100%; box-sizing: border-box;}
         
         .source-area { display: flex; gap: 30px; align-items: flex-end; padding: 10px 20px; border: 2px dashed #bdc3c7; border-radius: 10px; background-color: #f8f9fa; }
-        .source-item { display: flex; flex-direction: column; align-items: center; cursor: grab; touch-action: none; -webkit-user-drag: none; }
+        .source-item { display: flex; flex-direction: column; align-items: center; touch-action: none; cursor: pointer; }
         .source-label { font-size: 14px; color: #7f8c8d; margin-top: 8px; font-weight: bold; }
         
-        /* 預備區的縮小版圖示 */
+        /* 預備區的縮小圖示，避免佔用太多空間 */
         .source-icon { border-radius: 2px; box-shadow: 1px 1px 3px rgba(0,0,0,0.2); }
-        .icon-100 { width: 50px; height: 50px; background-color: #ff6666; background-image: linear-gradient(rgba(255,255,255,0.5) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.5) 1px, transparent 1px); background-size: 5px 5px, 5px 5px; border: 1px solid #e74c3c; }
-        .icon-10 { width: 15px; height: 50px; background-color: #4dc3a3; background-image: linear-gradient(rgba(255,255,255,0.5) 1px, transparent 1px); background-size: 100% 5px; border: 1px solid #1abc9c; }
+        .icon-100 { width: 50px; height: 50px; background-color: #ff6666; border: 1px solid #e74c3c; background-image: linear-gradient(rgba(255,255,255,0.5) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.5) 1px, transparent 1px); background-size: 5px 5px, 5px 5px; }
+        .icon-10 { width: 15px; height: 50px; background-color: #4dc3a3; border: 1px solid #1abc9c; background-image: linear-gradient(rgba(255,255,255,0.5) 1px, transparent 1px); background-size: 100% 5px; }
         .icon-1 { width: 20px; height: 20px; background-color: #f1c40f; border: 1px solid #f39c12; }
 
         .buttons button { padding: 15px 30px; font-size: 18px; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; margin-left: 10px; }
@@ -119,34 +89,56 @@
         .btn-submit { background-color: #8bc34a; color: #fff; }
 
         /* 拖曳中的分身 */
-        .dragging { position: fixed; opacity: 0.9; z-index: 1000; pointer-events: none; margin: 0 !important; }
+        .dragging { position: fixed; z-index: 1000; pointer-events: none; opacity: 0.9; margin: 0; }
         
-        /* 特效 */
-        .flash { animation: flashAnim 0.5s 2; }
-        @keyframes flashAnim { 0% { opacity: 1; transform: scale(1); } 50% { opacity: 0.5; transform: scale(1.1); box-shadow: 0 0 10px yellow; } 100% { opacity: 1; transform: scale(1); } }
+        /* 提示閃爍特效 */
+        .flash { animation: flashAnim 0.5s 3; }
+        @keyframes flashAnim { 0% { background-color: white; } 50% { background-color: #fff3cd; box-shadow: inset 0 0 20px #f1c40f; } 100% { background-color: white; } }
+
+        /* 自訂提示視窗 (取代 alert) */
+        .modal-overlay {
+            position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0,0,0,0.5);
+            display: flex; justify-content: center; align-items: center; z-index: 2000;
+            visibility: hidden; opacity: 0; transition: 0.2s;
+        }
+        .modal-overlay.active { visibility: visible; opacity: 1; }
+        .modal-content {
+            background: white; padding: 40px; border-radius: 15px; text-align: center;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.2); transform: scale(0.8); transition: 0.2s; min-width: 300px;
+        }
+        .modal-overlay.active .modal-content { transform: scale(1); }
+        .modal-title { font-size: 28px; font-weight: bold; margin-bottom: 10px; }
+        .modal-text { font-size: 18px; color: #555; margin-bottom: 30px; }
+        .modal-btn { background: #3498db; color: white; padding: 12px 35px; border: none; border-radius: 8px; font-size: 18px; cursor: pointer; font-weight: bold; }
     </style>
 </head>
 <body>
 
-    <div class="header">
-        <div class="title">134 <span style="color: #e74c3c;">變成</span> 124</div>
-        <div class="subtitle">請操作積木（拿走10）</div>
+    <!-- 自訂提示視窗 -->
+    <div class="modal-overlay" id="custom-modal">
+        <div class="modal-content">
+            <div class="modal-title" id="modal-title">提示</div>
+            <div class="modal-text" id="modal-text">訊息內容</div>
+            <button class="modal-btn" onclick="closeModal()">我知道了</button>
+        </div>
     </div>
 
-    <!-- 位值表區域 -->
+    <div class="header">
+        <div class="title">23 <span style="color: #e74c3c;">變成</span> 13</div>
+        <div class="subtitle">請操作積木（拿走 10）</div>
+    </div>
+
     <div class="board">
         <div class="zone zone-hundreds" id="zone-100">
             <div class="zone-title">百位</div>
             <div class="hint-text">(拖入增加/拖至左下移除)</div>
-            <div id="container-100">
-                <div class="block block-100" data-value="100"></div>
-            </div>
+            <div class="block-container" id="container-100"></div>
         </div>
         <div class="zone zone-tens" id="zone-10">
             <div class="zone-title">十位</div>
-            <div class="hint-text">(點擊打碎/拖至左下移除)</div>
-            <div id="container-10">
-                <div class="block block-10" data-value="10"></div>
+            <div class="hint-text">(點擊可退位/拖至左下移除)</div>
+            <div class="block-container" id="container-10">
+                <!-- 預設：2 個十位積木 -->
                 <div class="block block-10" data-value="10"></div>
                 <div class="block block-10" data-value="10"></div>
             </div>
@@ -154,24 +146,15 @@
         <div class="zone zone-ones" id="zone-1">
             <div class="zone-title">個位</div>
             <div class="hint-text">(拖至左下移除)</div>
-            <div class="ten-frame-wrapper">
-                <!-- 底部淺色空框 -->
-                <div class="ten-frame-bg">
-                    <div class="slot"></div><div class="slot"></div><div class="slot"></div><div class="slot"></div><div class="slot"></div>
-                    <div class="slot"></div><div class="slot"></div><div class="slot"></div><div class="slot"></div><div class="slot"></div>
-                </div>
-                <!-- 實際積木容器 -->
-                <div class="ten-frame" id="container-1">
-                    <div class="block block-1" data-value="1"></div>
-                    <div class="block block-1" data-value="1"></div>
-                    <div class="block block-1" data-value="1"></div>
-                    <div class="block block-1" data-value="1"></div>
-                </div>
+            <div class="block-container" id="container-1">
+                <!-- 預設：3 個個位積木 -->
+                <div class="block block-1" data-value="1"></div>
+                <div class="block block-1" data-value="1"></div>
+                <div class="block block-1" data-value="1"></div>
             </div>
         </div>
     </div>
 
-    <!-- 底部：預備區 -->
     <div class="footer">
         <div class="source-area" id="source-area">
             <div class="source-item" data-source="100">
@@ -194,92 +177,65 @@
     </div>
 
 <script>
-    // 【核心修復】徹底封殺瀏覽器原生拖曳，避免出現影片中的禁止符號！
+    // 阻擋原生拖曳，保證不出現禁止符號
     document.addEventListener('dragstart', (e) => e.preventDefault());
-    
-    const sourceArea = document.getElementById('source-area');
-    const containers = {
-        '100': document.getElementById('container-100'),
-        '10': document.getElementById('container-10'),
-        '1': document.getElementById('container-1')
-    };
 
     let draggedElement = null;
     let dragClone = null;
-    let dragType = null; // 'new' (從預備區來) 或 'move' (從位值表來)
-    let sourceValue = null;
+    let dragType = ''; // 'new' 從下方來, 'move' 從上方來
     let startX = 0, startY = 0;
-    let isDragging = false; // 用來區分是單純「點擊」還是「拖曳」
+    let isDragging = false;
+    let blockValue = null;
 
     document.addEventListener('pointerdown', handlePointerDown, { passive: false });
     document.addEventListener('pointermove', handlePointerMove, { passive: false });
     document.addEventListener('pointerup', handlePointerUp);
 
     function handlePointerDown(e) {
-        // 只允許左鍵或觸控
-        if (e.pointerType === 'mouse' && e.button !== 0) return;
+        // 防止觸控螢幕縮放或預設滾動
+        if(e.target.closest('.block') || e.target.closest('.source-item')) {
+            e.preventDefault();
+        }
 
         const block = e.target.closest('.block');
         const sourceItem = e.target.closest('.source-item');
 
         if (block) {
-            e.preventDefault(); // 阻擋文字選取
             draggedElement = block;
             dragType = 'move';
-            sourceValue = block.getAttribute('data-value');
+            blockValue = block.getAttribute('data-value');
             startX = e.clientX;
             startY = e.clientY;
-            isDragging = false; // 初始設為未拖曳 (等待 move 觸發)
+            isDragging = false; // 初始算作點擊，移動後才變拖曳
             
-            // 建立分身
-            createClone(block, e.clientX, e.clientY);
-            block.style.opacity = '0.2'; // 讓原本的積木變透明
-            
-        } else if (sourceItem) {
-            e.preventDefault();
+            // 產生分身
+            dragClone = block.cloneNode(true);
+            dragClone.classList.add('dragging');
+            document.body.appendChild(dragClone);
+            moveClone(e.clientX, e.clientY);
+            block.style.opacity = '0.3'; // 原本的變半透明
+        } 
+        else if (sourceItem) {
             dragType = 'new';
-            sourceValue = sourceItem.getAttribute('data-source');
-            startX = e.clientX;
-            startY = e.clientY;
-            isDragging = true; // 從預備區拿必定視為拖曳
+            blockValue = sourceItem.getAttribute('data-source');
+            isDragging = true;
             
-            // 產生一個正確大小的真實積木作為分身，而不是拿縮小的 Icon
-            const tempBlock = document.createElement('div');
-            tempBlock.className = `block block-${sourceValue}`;
-            document.body.appendChild(tempBlock);
-            createClone(tempBlock, e.clientX, e.clientY);
-            tempBlock.remove(); // 用完即丟
+            // 從預備區拉出來時，產生一個實體大小的積木分身
+            dragClone = document.createElement('div');
+            dragClone.className = `block block-${blockValue} dragging`;
+            document.body.appendChild(dragClone);
+            moveClone(e.clientX, e.clientY);
         }
-    }
-
-    function createClone(refElement, x, y) {
-        dragClone = refElement.cloneNode(true);
-        dragClone.classList.add('dragging');
-        dragClone.style.opacity = '0.9';
-        // 關鍵：分身不能擋住指標事件，否則會抓不到底下的元素
-        dragClone.style.pointerEvents = 'none'; 
-        document.body.appendChild(dragClone);
-        moveClone(x, y);
-    }
-
-    function moveClone(x, y) {
-        if (!dragClone) return;
-        const rect = dragClone.getBoundingClientRect();
-        // 讓滑鼠/手指位於積木中心
-        dragClone.style.left = (x - rect.width / 2) + 'px';
-        dragClone.style.top = (y - rect.height / 2) + 'px';
     }
 
     function handlePointerMove(e) {
         if (!dragClone) return;
-        e.preventDefault(); // 防止 iOS 捲動
+        e.preventDefault(); 
         
-        // 判斷是否真的有移動 (區分點擊和拖曳)
+        // 如果移動超過 5px，就判定為「拖曳」而不是「單擊」
         if (!isDragging && dragType === 'move') {
-            const dx = e.clientX - startX;
-            const dy = e.clientY - startY;
-            if (Math.sqrt(dx*dx + dy*dy) > 5) {
-                isDragging = true; // 移動超過 5 像素，確認為拖曳
+            if (Math.abs(e.clientX - startX) > 5 || Math.abs(e.clientY - startY) > 5) {
+                isDragging = true;
             }
         }
         
@@ -288,96 +244,73 @@
         }
     }
 
+    function moveClone(x, y) {
+        const rect = dragClone.getBoundingClientRect();
+        dragClone.style.left = (x - rect.width / 2) + 'px';
+        dragClone.style.top = (y - rect.height / 2) + 'px';
+    }
+
     function handlePointerUp(e) {
         if (!dragClone) return;
 
         const dropX = e.clientX;
         const dropY = e.clientY;
-
         dragClone.remove();
         dragClone = null;
 
-        // 如果只是「點擊(沒拖曳)」，且點的是 10，則執行退位(打碎)
+        // 如果只是輕輕「點擊」(沒移動)，且是十位數，執行退位打碎
         if (dragType === 'move' && !isDragging) {
             draggedElement.style.opacity = '1';
-            if (sourceValue === '10') {
+            if (blockValue === '10') {
                 breakTenBlock(draggedElement);
             }
             draggedElement = null;
             return;
         }
 
-        // 處理放下的邏輯
+        // 放下時的邏輯判斷
         const targetElement = document.elementFromPoint(dropX, dropY);
         const targetZone = targetElement ? targetElement.closest('.zone') : null;
+        const sourceAreaRect = document.getElementById('source-area').getBoundingClientRect();
         
-        const sourceAreaRect = sourceArea.getBoundingClientRect();
-        // 判斷是否丟進左下角垃圾桶區
+        // 判斷是否丟回左下角垃圾桶區
         const isDroppedInSource = (
-            dropX >= sourceAreaRect.left && 
-            dropX <= sourceAreaRect.right &&
-            dropY >= sourceAreaRect.top && 
-            dropY <= sourceAreaRect.bottom
+            dropX >= sourceAreaRect.left && dropX <= sourceAreaRect.right &&
+            dropY >= sourceAreaRect.top && dropY <= sourceAreaRect.bottom
         );
 
         if (dragType === 'new') {
-            // 從來源區拖進對應的位值區 (新增積木)
-            if (targetZone && targetZone.id === `zone-${sourceValue}`) {
-                addBlock(sourceValue);
-                playSound(800, 'sine'); // 成功放上：高音
+            // 從預備區新增積木到位值表
+            if (targetZone && targetZone.id === `zone-${blockValue}`) {
+                addBlock(blockValue);
             }
         } else if (dragType === 'move') {
-            // 從位值區拖進垃圾桶 (刪除積木)
+            // 從位值表丟到垃圾桶
             if (isDroppedInSource) {
-                draggedElement.remove();
-                playSound(300, 'square'); // 刪除：低音
+                draggedElement.remove(); // 徹底刪除
+                playSound(400, 'square');
             } else {
-                // 丟在其他地方，恢復原狀
-                draggedElement.style.opacity = '1';
+                draggedElement.style.opacity = '1'; // 沒丟準，恢復原狀
             }
         }
-
         draggedElement = null;
-        checkAutoCarry();
     }
 
     function addBlock(val) {
         const newBlock = document.createElement('div');
         newBlock.className = `block block-${val}`;
         newBlock.setAttribute('data-value', val);
-        containers[val].appendChild(newBlock);
+        document.getElementById(`container-${val}`).appendChild(newBlock);
+        playSound(800, 'sine');
     }
 
-    // 將 1 個十打碎成 10 個一
-    function breakTenBlock(blockElement) {
-        blockElement.remove();
-        for(let i=0; i<10; i++) {
-            addBlock('1');
-        }
-        playSound(600, 'triangle'); // 退位音效
-        document.getElementById('container-1').classList.add('flash');
-        setTimeout(() => {
-            document.getElementById('container-1').classList.remove('flash');
-        }, 1000);
+    function breakTenBlock(block) {
+        block.remove();
+        for(let i=0; i<10; i++) addBlock('1');
+        playSound(600, 'triangle');
     }
 
-    // 自動進位判斷 (滿10個1變1個10)
-    function checkAutoCarry() {
-        const ones = containers['1'].querySelectorAll('.block-1');
-        if (ones.length >= 10) {
-            setTimeout(() => {
-                for(let i=0; i<10; i++) {
-                    ones[i].remove();
-                }
-                addBlock('10');
-                playSound(1000, 'sine'); // 進位音效
-                document.getElementById('zone-10').classList.add('flash');
-                setTimeout(() => document.getElementById('zone-10').classList.remove('flash'), 1000);
-            }, 300); // 稍微延遲讓學生看到滿10的瞬間
-        }
-    }
-
-    // 簡易合成音效
+    // 簡易音效系統
     const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
     function playSound(freq, type) {
         if(audioCtx.state === 'suspended') audioCtx.resume();
@@ -393,25 +326,44 @@
         osc.stop(audioCtx.currentTime + 0.3);
     }
 
+    // 彈出視窗控制
+    function showModal(title, text, isSuccess) {
+        document.getElementById('modal-title').innerText = title;
+        document.getElementById('modal-title').style.color = isSuccess ? '#27ae60' : '#e74c3c';
+        document.getElementById('modal-text').innerText = text;
+        document.getElementById('custom-modal').classList.add('active');
+    }
+    function closeModal() {
+        document.getElementById('custom-modal').classList.remove('active');
+    }
+
+    // 檢查答案按鈕
     function checkAnswer() {
-        const h = containers['100'].querySelectorAll('.block-100').length;
-        const t = containers['10'].querySelectorAll('.block-10').length;
-        const o = containers['1'].querySelectorAll('.block-1').length;
+        const h = document.querySelectorAll('#container-100 .block-100').length;
+        const t = document.querySelectorAll('#container-10 .block-10').length;
+        const o = document.querySelectorAll('#container-1 .block-1').length;
         
         const total = h * 100 + t * 10 + o;
         
-        if (total === 124) {
-            alert('答對了！你拿走了 10，134 變成 124。');
+        if (total === 13) {
+            playSound(1000, 'sine');
+            showModal('恭喜答對！', '你成功拿走 10，把 23 變成了 13，太棒了！', true);
         } else {
-            alert(`目前是 ${total}，再試著「拿走10」看看！(把綠色積木拖到左下角)`);
+            playSound(300, 'triangle');
+            showModal('再試試看', `目前的積木總數是 ${total}，\n請操作積木，讓它變成 13 喔！`, false);
         }
     }
     
+    // 提示按鈕
     function playHint() {
-        // 提示：讓十位數的區域閃爍
+        playSound(700, 'sine');
+        // 讓十位數區塊閃爍
         const zone10 = document.getElementById('zone-10');
+        zone10.classList.remove('flash'); // 重置動畫
+        void zone10.offsetWidth; // 觸發重繪
         zone10.classList.add('flash');
-        setTimeout(() => zone10.classList.remove('flash'), 1000);
+        
+        showModal('溫馨提示', '題目要求「拿走 10」。\n請按住【十位】區域裡的 1 個綠色積木，拖曳到左下角的預備區丟掉！', true);
     }
 </script>
 </body>
